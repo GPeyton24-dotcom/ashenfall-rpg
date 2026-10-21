@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#17131f">
+<title>Ashenfall: The Shattered Crown</title>
+<style>
+:root{--bg:#17131f;--panel:#241e30;--panel2:#30273e;--gold:#e6bd73;--text:#f4eee7;--muted:#b9adbf;--red:#d66a70;--green:#8dc59a}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#34253d 0,#17131f 60%);color:var(--text);font:16px/1.55 system-ui,-apple-system,Segoe UI,sans-serif}
+main{max-width:850px;margin:auto;padding:20px 14px 45px}.hero{padding:24px 20px;border:1px solid #5d4960;border-radius:18px;background:linear-gradient(135deg,#302238,#1c1825);box-shadow:0 12px 35px #0005}
+.kicker{color:var(--gold);text-transform:uppercase;letter-spacing:.16em;font-size:.72rem;font-weight:800}.hero h1{font:clamp(2rem,7vw,3.2rem)/1.05 Georgia,serif;margin:.35rem 0}.hero p{color:var(--muted);margin:.5rem 0 0}
+.panel{background:#241e30eF;border:1px solid #4c3d56;border-radius:15px;padding:17px;margin-top:14px}
+h2{font:1.45rem Georgia,serif;margin:0 0 10px;color:var(--gold)}h3{margin:0 0 8px;font-size:1rem}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}.stat{background:#17131f;border-radius:10px;padding:9px;text-align:center}.stat b{display:block;font-size:1.1rem}.small{font-size:.86rem;color:var(--muted)}
+button,select,input{font:inherit}button{background:#4b3657;color:var(--text);border:1px solid #80658b;border-radius:10px;padding:11px 14px;cursor:pointer;transition:.15s}button:hover{background:#63456e}button:disabled{opacity:.4;cursor:not-allowed}.primary{background:#7a542f;border-color:#c59a5a}.primary:hover{background:#91683a}.choice{display:block;width:100%;text-align:left;margin:9px 0;background:#30273e}.choice strong{display:block;color:var(--gold)}.choice span{color:var(--muted);font-size:.9rem}.log{white-space:pre-line;color:#ddd1e2;background:#17131f;border-radius:10px;padding:13px;margin:10px 0}.bar{height:9px;background:#493a4e;border-radius:9px;overflow:hidden;margin:5px 0 10px}.bar>i{display:block;height:100%;background:var(--red);width:50%}.bar.xp>i{background:var(--gold)}.hidden{display:none!important}.tag{display:inline-block;border:1px solid #66536e;border-radius:999px;padding:2px 8px;color:var(--gold);font-size:.76rem;margin-right:4px}.footer{margin-top:18px;text-align:center;color:#93869b;font-size:.78rem}select,input{background:#17131f;color:var(--text);border:1px solid #66536e;border-radius:9px;padding:10px;max-width:100%}.field{display:grid;gap:5px;margin:10px 0}.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}@media(max-width:520px){main{padding:12px 10px 35px}.panel{padding:14px}.two{grid-template-columns:1fr}.stats{grid-template-columns:repeat(3,1fr)}button{padding:10px 12px}}
+</style>
+</head>
+<body><main>
+<header class="hero"><div class="kicker">A choice-driven fantasy RPG</div><h1>Ashenfall</h1><div style="font:1.15rem Georgia,serif;color:#d9c6ad">The Shattered Crown</div><p>Build your hero. Choose your allies. Decide what becomes of a kingdom.</p></header>
+<section id="create" class="panel">
+<h2>Begin your tale</h2>
+<div class="field"><label for="heroName">Hero's name</label><input id="heroName" maxlength="24" placeholder="Enter a name" value="Rook"></div>
+<div class="field"><label for="heroClass">Choose a class</label><select id="heroClass"><option value="warrior">Warrior — sturdy, powerful melee</option><option value="rogue">Rogue — quick strikes and cunning</option><option value="mage">Mage — devastating arcane magic</option><option value="cleric">Cleric — healing and radiant power</option></select></div>
+<button class="primary" onclick="startGame()">Start adventure</button>
+<p class="small">Your progress saves in this browser. Use “New Game” to restart.</p>
+</section>
+<div id="game" class="hidden">
+<section class="panel" id="sheet"></section>
+<section class="panel"><div class="kicker" id="chapter">Chapter I</div><h2 id="sceneTitle"></h2><div id="sceneText"></div><div id="choices"></div><div id="combat" class="hidden"></div></section>
+<section class="panel"><h3>Journal & inventory</h3><div id="journal" class="small"></div><div id="inventory" class="row" style="margin-top:8px"></div><div class="row" style="margin-top:13px"><button onclick="saveGame()">Save</button><button onclick="newGame()">New Game</button><button onclick="showHelp()">Rules</button></div></section>
+</div>
+<div id="help" class="panel hidden"><h2>Quick rules</h2><p>Choose story options to explore. In battle, select an action each round. Potions restore health. Defeating enemies grants XP; each level improves your hero and unlocks stronger combat. Companion affinity rises when you choose thoughtful or supportive responses. Romance is optional and develops through story choices.</p><button onclick="document.getElementById('help').classList.add('hidden')">Close</button></div>
+<div class="footer">A small original browser RPG prototype • Fantasy adventure, choices, companions, dungeon combat</div>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+let G=null;
+const classes={
+ warrior:{hp:34,atk:7,magic:2,skill:"Shield Break",desc:"A practiced fighter"},
+ rogue:{hp:27,atk:6,magic:3,skill:"Shadowstrike",desc:"A quick and clever skirmisher"},
+ mage:{hp:23,atk:3,magic:9,skill:"Arc Bolt",desc:"A scholar of dangerous magic"},
+ cleric:{hp:30,atk:4,magic:6,skill:"Radiant Mend",desc:"A keeper of sacred arts"}
+};
+function startGame(){
+ let c=$("heroClass").value,cl=classes[c];
+ G={name:$("heroName").value.trim()||"Rook",class:c,level:1,xp:0,next:30,hp:cl.hp,max:cl.hp,atk:cl.atk,magic:cl.magic,coins:18,potions:2,weapon:"Worn "+(c==="mage"?"focus":c==="rogue"?"dagger":c==="cleric"?"mace":"sword"),affinity:{lyra:0,brann:0},flags:{},journal:["You reached the border town of Greyhaven."],scene:"arrival",enemy:null,round:0};
+ $("create").classList.add("hidden");$("game").classList.remove("hidden");render();
+}
+function newGame(){if(confirm("Start a new adventure? Your current save will be replaced.")){localStorage.removeItem("ashenfall-save");location.reload()}}
+function saveGame(){localStorage.setItem("ashenfall-save",JSON.stringify(G));alert("Adventure saved on this device.");}
+function load(){try{let s=localStorage.getItem("ashenfall-save");if(s){G=JSON.parse(s);$("create").classList.add("hidden");$("game").classList.remove("hidden");render()}}catch(e){}}
+function addLog(s){G.journal.unshift(s);G.journal=G.journal.slice(0,7)}
+function gainXP(n){G.xp+=n;let msg="You gain "+n+" XP.";while(G.xp>=G.next){G.xp-=G.next;G.level++;G.next=Math.round(G.next*1.55);G.max+=G.class==="warrior"?7: G.class==="cleric"?6:5;G.hp=G.max;G.atk+=1;G.magic+=G.class==="mage"||G.class==="cleric"?2:1;msg+=" LEVEL UP! You are now level "+G.level+". Your strength grows and your health is restored."}addLog(msg)}
+function renderSheet(){
+ let xp=Math.round(G.xp/G.next*100);
+ $("sheet").innerHTML=`<div class="row" style="justify-content:space-between"><div><h3>${esc(G.name)} <span class="tag">Level ${G.level} ${G.class}</span></h3><div class="small">${G.weapon} · ${G.coins} gold</div></div><div class="small">XP ${G.xp}/${G.next}</div></div><div class="bar xp"><i style="width:${xp}%"></i></div><div class="small">Health ${G.hp}/${G.max}</div><div class="bar"><i style="width:${Math.max(0,G.hp/G.max*100)}%"></i></div><div class="stats"><div class="stat"><span class="small">Attack</span><b>${G.atk}</b></div><div class="stat"><span class="small">Magic</span><b>${G.magic}</b></div><div class="stat"><span class="small">Potions</span><b>${G.potions}</b></div></div><div class="small" style="margin-top:10px">Companions: Lyra ${G.affinity.lyra>=3?"♥":G.affinity.lyra>=1?"♡":"—"} · Brann ${G.affinity.brann>=3?"♥":G.affinity.brann>=1?"♡":"—"}</div>`;
+ $("journal").innerHTML=G.journal.map(x=>"• "+esc(x)).join("<br>");
+ $("inventory").innerHTML=`<span class="tag">Healing potion ×${G.potions}</span><span class="tag">${G.coins} gold</span>`;
+}
+function render(){renderSheet();let s=scenes[G.scene];$("chapter").textContent=s.chapter;$("sceneTitle").textContent=s.title;$("sceneText").innerHTML=s.text(G);$("choices").innerHTML="";$("combat").classList.add("hidden");if(G.enemy){renderCombat()}else{s.choices(G).forEach(ch=>{let b=document.createElement("button");b.className="choice";b.innerHTML=`<strong>${ch.title}</strong><span>${ch.desc||""}</span>`;b.onclick=()=>ch.go();$("choices").appendChild(b)})}}
+function choice(title,desc,go){return{title,desc,go}}
+function go(scene){G.scene=scene;G.enemy=null;render()}
+function beginFight(name,hp,atk,xp,loot){G.enemy={name,hp,max:hp,atk,xp,loot};G.round=0;render()}
+function renderCombat(){let e=G.enemy;$("combat").classList.remove("hidden");$("choices").innerHTML="";$("combat").innerHTML=`<h3>⚔ ${e.name}</h3><div class="small">Enemy health: ${e.hp}/${e.max}</div><div class="bar"><i style="width:${e.hp/e.max*100}%;background:#c56d75"></i></div><div class="row"><button onclick="fight('attack')">Attack</button><button onclick="fight('skill')">${classes[G.class].skill}</button><button onclick="fight('potion')" ${G.potions<1?"disabled":""}>Drink potion (${G.potions})</button><button onclick="fight('guard')">Guard</button></div><p class="small">Choose one action. Guard reduces the next hit.</p>`}
+function fight(action){
+ let e=G.enemy;if(!e)return;let msg="";
+ if(action==="potion"){if(G.potions<=0)return;G.potions--;let heal=Math.min(16,G.max-G.hp);G.hp+=heal;msg=`You drink a potion and recover ${heal} health.`}
+ else if(action==="guard"){G.guarding=true;msg="You brace for the enemy's attack."}
+ else {let dmg= action==="skill"?(G.class==="mage"?G.magic+5:G.class==="cleric"?G.magic+3:G.atk+5):G.atk+Math.floor(Math.random()*4);if(action==="skill"&&G.class==="cleric"){let heal=Math.min(7,G.max-G.hp);G.hp+=heal;msg+=`Radiant energy restores ${heal} health. `}e.hp-=dmg;msg+=`You deal ${dmg} damage.`}
+ if(e.hp<=0){msg+=` ${e.name} falls!`;G.coins+=e.loot;gainXP(e.xp);addLog(msg+` You find ${e.loot} gold.`);G.enemy=null;G.flags.lastVictory=true;if(G.scene==="goblinFight")go("goblinAfter");else if(G.scene==="cryptFight")go("cryptAfter");else if(G.scene==="bossFight")go("bossAfter");else render();return}
+ let incoming=e.atk+Math.floor(Math.random()*3);if(G.guarding){incoming=Math.max(1,Math.floor(incoming/2));G.guarding=false}G.hp-=incoming;msg+=` ${e.name} strikes back for ${incoming}.`;addLog(msg);
+ if(G.hp<=0){G.hp=1;addLog("You collapse, but a mysterious healing charm pulls you back. You retreat to Greyhaven, shaken.");G.coins=Math.max(0,G.coins-5);go("arrival");return}
+ render();
+}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+const scenes={
+ arrival:{chapter:"Chapter I · Greyhaven",title:"A Rumor in the Rain",text:g=>`Rain whispers across Greyhaven's crooked rooftops. At the inn, a silver-haired scout named <b>Lyra</b> studies a map beside a broad-shouldered sellsword, <b>Brann</b>. They both seek the lost Ember Key—said to open the sealed crypt beneath the old watchtower.<p>Lyra catches your eye. “If you're heading into trouble, at least choose the right trouble.”</p>`,choices:g=>[
+ choice("Speak with Lyra","Ask what she knows about the Ember Key.",()=>{G.affinity.lyra++;addLog("You shared a careful conversation with Lyra.");go("lyraTalk")}),
+ choice("Challenge Brann to a friendly spar","Test your strength and earn his respect.",()=>{G.affinity.brann++;addLog("Brann respects your courage.");go("brannTalk")}),
+ choice("Visit the market","Buy supplies before leaving town.",()=>go("market")),
+ choice("Take the road to the watchtower","Begin the dungeon expedition.",()=>go("road"))
+ ]},
+ lyraTalk:{chapter:"Greyhaven · Companion",title:"A Scout's Secret",text:g=>`Lyra reveals she once explored the watchtower, but fled when the stones began to sing. “I won't ask you to trust me,” she says. “Just don't mistake bravery for having no fear.”`,choices:g=>[choice("Promise you'll watch each other's backs","A bond begins with trust.",()=>{G.affinity.lyra+=2;addLog("Lyra's trust in you deepens.");go("arrival")}),choice("Ask her to join your expedition","Invite Lyra along.",()=>{G.flags.lyra=true;addLog("Lyra joins your party.");go("arrival")})]},
+ brannTalk:{chapter:"Greyhaven · Companion",title:"Steel and Stories",text:g=>`Brann laughs after your spar. Beneath his rough humor is a veteran who lost his old company to the Crown's wars. “No glory in dying for a pretty banner,” he says.`,choices:g=>[choice("Tell him people are worth fighting for","He considers your words.",()=>{G.affinity.brann+=2;G.flags.brann=true;addLog("Brann agrees to travel with you.");go("arrival")}),choice("Ask him to join for the gold","Practical, if not sentimental.",()=>{G.flags.brann=true;G.coins+=3;go("arrival")})]},
+ market:{chapter:"Greyhaven · Market",title:"Last-Minute Provisions",text:g=>`A merchant offers a healing potion for 8 gold. You have ${g.coins} gold.`,choices:g=>[choice("Buy a potion (8 gold)","Restore health during a fight.",()=>{if(G.coins>=8){G.coins-=8;G.potions++;addLog("You purchased a healing potion.")}else addLog("Not enough gold.");render()}),choice("Buy a sharpened weapon (12 gold)","Increase your attack by 2.",()=>{if(G.coins>=12){G.coins-=12;G.atk+=2;G.weapon="Sharpened "+G.weapon;addLog("Your weapon is upgraded.")}else addLog("Not enough gold.");render()}),choice("Return to the inn","Ready to leave.",()=>go("arrival"))]},
+ road:{chapter:"Chapter I · The Old Watchtower",title:"The Road of Broken Bells",text:g=>`The road climbs into black pines. At dusk, a ruined watchtower rises above the fog. A goblin scavenger blocks the arch, clutching a brass key.`,choices:g=>[choice("Fight the goblin","Take the key by force.",()=>{G.scene="goblinFight";beginFight("Tower Goblin",18,4,18,7)}),choice("Try to bargain","Offer 5 gold for the key.",()=>{if(G.coins>=5){G.coins-=5;G.flags.key=true;addLog("You bought the brass key.");go("tower")}else addLog("You don't have enough gold.");render()}),choice("Sneak around the tower","Avoid the guard, but risk getting lost.",()=>{if(Math.random()<.6){G.flags.key=true;addLog("You slip past and find the key.");go("tower")}else{G.hp=Math.max(1,G.hp-4);addLog("A hidden snare catches you. You lose 4 health.");go("tower")}})]},
+ goblinFight:{chapter:"Combat · Watchtower",title:"Goblin Ambush",text:g=>`The goblin darts between broken stones.`,choices:g=>[]},
+ goblinAfter:{chapter:"Watchtower",title:"A Brass Key",text:g=>`The goblin's key is warm to the touch. Beyond the arch, stairs descend into a buried crypt.`,choices:g=>[choice("Enter the crypt","The air below smells of ash and old magic.",()=>{G.flags.key=true;go("crypt")}),choice("Return to Greyhaven","Rest and prepare.",()=>go("arrival"))]},
+ tower:{chapter:"Watchtower",title:"The Sealed Stair",text:g=>`The brass key turns in a lock hidden beneath ivy. A spiral stair leads down. You hear something moving in the dark.`,choices:g=>[choice("Descend into the crypt","No turning back.",()=>go("crypt")),choice("Go back to town","Prepare a little more.",()=>go("arrival"))]},
+ crypt:{chapter:"Chapter II · The Ash Crypt",title:"Below the Watchtower",text:g=>`Dusty statues line a narrow hall. A spectral guardian rises from a cracked sarcophagus, its eyes glowing blue. On the far wall, an inscription reads: “Only the willing may carry the flame.”`,choices:g=>[choice("Fight the guardian","Clear the path to the inner chamber.",()=>{G.scene="cryptFight";beginFight("Crypt Warden",30,6,30,15)}),choice("Read the inscription aloud","Try to calm the restless spirit.",()=>{G.hp=Math.min(G.max,G.hp+5);G.flags.mercy=true;addLog("The inscription quiets the spirit; you recover 5 health.");go("innerCrypt")})]},
+ cryptFight:{chapter:"Combat · Ash Crypt",title:"Crypt Warden",text:g=>`The ancient guardian raises its rusted blade.`,choices:g=>[]},
+ cryptAfter:{chapter:"Ash Crypt",title:"The Guardian's Gift",text:g=>`The warden crumbles to ash. Behind it rests a glowing ember shard, and a narrow passage opens toward the heart of the crypt.`,choices:g=>[choice("Take the shard and continue","Its warmth steadies your heartbeat.",()=>{G.flags.shard=true;G.magic+=1;go("innerCrypt")}),choice("Leave the shard untouched","Some treasures ask too high a price.",()=>{G.flags.shard=false;go("innerCrypt")})]},
+ innerCrypt:{chapter:"Chapter II · The Heart",title:"The Ember Door",text:g=>`A vast door of black stone stands before you. The Ember Key—or the shard's glow—awakens runes across its surface. Behind it, something enormous breathes.`,choices:g=>[choice("Open the door","Face whatever guards the Crown's secret.",()=>{G.scene="bossFight";beginFight("Ashen Knight",46,8,55,30)}),choice("Pause and share a quiet moment with your companion","${companion}?",()=>{if(G.flags.lyra){G.affinity.lyra++;addLog("Lyra shares a quiet, hopeful moment with you.")}if(G.flags.brann){G.affinity.brann++;addLog("Brann opens up about his past.")}G.hp=G.max;addLog("You rest and recover fully.");render()})]},
+ bossFight:{chapter:"Boss · The Ash Crypt",title:"The Ashen Knight",text:g=>`The knight's armor is fused with black flame. “The Crown is not a prize,” it declares. “It is a burden.”`,choices:g=>[]},
+ bossAfter:{chapter:"Chapter III · The Choice",title:"The Shattered Crown",text:g=>`The Ashen Knight kneels. In its hands rests a crown split into three burning pieces. The crypt trembles. You could restore the crown, destroy it, or entrust its power to someone you came to know.`,choices:g=>[
+ choice("Restore the Crown","Bring order back to the kingdom—at a cost.",()=>ending("restore")),
+ choice("Destroy the Crown","Let no ruler wield its ancient magic again.",()=>ending("destroy")),
+ choice("Ask Lyra to guard the shards","Trust someone who understands the danger.",()=>ending("lyra"))
+ ]},
+ ending:{chapter:"Epilogue",title:"A New Legend",text:g=>g.endingText||"Your choices reshape Ashenfall.",choices:g=>[choice("Begin again","Try a different class and path.",()=>newGame())]}
+};
+function ending(kind){G.scene="ending";if(kind==="restore")G.endingText="You mend the Crown. The roads grow safer and the banners rise—but you know peace will need more than a monarch. You leave the crypt as a hero whose name is sung in Greyhaven.";if(kind==="destroy")G.endingText="You shatter the Crown. Its magic fades into a thousand harmless sparks. The future is uncertain, but no tyrant can claim its power. Your companions stand beside you as the first dawn breaks.";if(kind==="lyra")G.endingText=G.flags.lyra?"Lyra accepts the shards and vows to hide them beyond the map's edge. In the quiet after danger, your growing affection feels like the beginning of another adventure.":"You choose to entrust the shards to Lyra, though she is only a name in the stories you heard. The choice becomes a legend of faith—and a promise to find her.";addLog("Ending reached: "+kind+".");render()}
+function showHelp(){$("help").classList.toggle("hidden")}
+load();
+</script></body></html>
